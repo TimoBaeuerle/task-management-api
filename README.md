@@ -81,9 +81,16 @@ Die API wurde mit **Symfony** entwickelt und verwendet **SQLite** als Datenbank.
 ### 2. Alle Tasks abrufen
 **Methode:** `GET`  
 **URL:** `/tasks`  
-**Beschreibung:** Gibt eine Liste aller Aufgaben zurück.
+**Beschreibung:** Gibt eine Liste aller Aufgaben zurück. Optional kann die Antwort paginiert und nach `status` gefiltert werden.
 
-**Response (200 OK):**
+**Optionale Query-Parameter:**
+| Parameter   | Typ      | Beschreibung                        | Beispiel            |
+|-------------|----------|-------------------------------------|---------------------|
+| `page`      | integer  | Seite für Pagination (1-basiert)    | `/tasks?page=2`     |
+| `limit`     | integer  | Anzahl der Einträge pro Seite       | `/tasks?limit=10`   |
+| `status`    | string   | Filter nach Task-Status             | `/tasks?status=pending` |
+
+**Response ohne Parameter (alle Tasks):**
 ```json
 [
     {
@@ -97,6 +104,36 @@ Die API wurde mit **Symfony** entwickelt und verwendet **SQLite** als Datenbank.
     }
 ]
 ```
+
+**Response mit Pagination und Status-Filter:**
+```json
+{
+    "data": [
+        {
+            "id": 2,
+            "title": "Neue Aufgabe 2",
+            "status": "completed",
+            "createdAt": "2024-06-16T11:00:00"
+        }
+    ],
+    "pagination": {
+        "total": 15,
+        "current_page": 2,
+        "limit": 5,
+        "total_pages": 3
+    }
+}
+```
+
+**Fehlerfälle:**
+- Ungültiger Status:  
+  **400 Bad Request**
+  ```json
+  {
+      "error": "Invalid status filter",
+      "valid_statuses": ["pending", "in_progress", "completed"]
+  }
+  ```
 
 ### 3. Einzelnen Task abrufen
 **Methode:** `GET`  
@@ -186,12 +223,16 @@ curl -X POST http://127.0.0.1:8000/tasks \
          }'
 ```
 
-### 2. Alle Tasks abrufen
-**Methode:** `GET`  
-**URL:** `/tasks`  
-
+### 2. Alle Tasks abrufen (mit Filter und Pagination)
 ```bash
-curl -X GET http://127.0.0.1:8000/tasks
+# Alle Tasks ohne Filter
+curl -X GET "http://127.0.0.1:8000/tasks"
+
+# Tasks gefiltert nach Status
+curl -X GET "http://127.0.0.1:8000/tasks?status=pending"
+
+# Tasks mit Pagination
+curl -X GET "http://127.0.0.1:8000/tasks?page=2&limit=5"
 ```
 
 ### 3. Einzelnen Task abrufen
