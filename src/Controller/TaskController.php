@@ -52,8 +52,37 @@ class TaskController extends AbstractController {
 
     //2. Alle Tasks abrufen
     #[Route('/tasks', name: 'get_tasks', methods: ['GET'])]
-    public function getTasks(): JsonResponse {
-        $tasks = $this->taskRepository->findAll();
+    public function getTasks(Request $request): JsonResponse {
+        //Get optional parameters
+        $status = $request->query->get('status');
+        $page = $request->query->get('page');
+
+        //Validate parameters if set
+        if ($status && !in_array($status, ['pending', 'in_progress', 'completed'], true)) {
+            return $this->json(['error' => 'Invalid status value.'], 404);
+        }
+        if ($page && $page < 1) {
+            return $this->json(['error' => 'Invalid pagination values.'], 404);
+        }
+
+        //Return paginated tasks if set
+        if ($page) {
+            $limit = $request->query->get('limit') ?? 10;
+            $result = $this->taskRepository->findTasksByParameters($status, $page, $limit);
+
+            return $this->json([
+                'data' => $result['data'],
+                'pagination' => [
+                    'total' => $result['total'],
+                    'current_page' => $result['current_page'],
+                    'limit' => $result['limit'],
+                    'total_pages' => ceil($result['total'] / $result['limit'])
+                ]
+            ]);
+        }
+
+        //Return tasks without pagination
+        $tasks = $this->taskRepository->findTasksByParameters($status);
         return $this->json($tasks);
     }
 

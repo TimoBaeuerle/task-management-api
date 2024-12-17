@@ -25,22 +25,35 @@ class TaskRepository extends ServiceEntityRepository {
         $this->getEntityManager()->flush();
     }
 
-    /**
-     * Get paginated list of tasks
-     */
-    public function findPaginatedTasks(int $page = 1, int $limit = 10): array {
-        $query = $this->createQueryBuilder('t')
-            ->orderBy('t.createdAt', 'DESC')
-            ->setFirstResult(($page - 1) * $limit)
-            ->setMaxResults($limit)
-            ->getQuery();
-        $paginator = new Paginator($query);
+    public function findTasksByParameters(?string $status = null, ?int $page = null, ?int $limit = null): array {
+        $queryBuilder = $this->createQueryBuilder('t');
 
-        return [
-            'data' => iterator_to_array($paginator),
-            'total' => count($paginator),
-            'current_page' => $page,
-            'limit' => $limit
-        ];
+        //Add status to query
+        if ($status) {
+            $queryBuilder->andWhere('t.status = :status')
+                ->setParameter('status', $status);
+        }
+
+        //Add pagination to query
+        if ($page && $limit) {
+            $queryBuilder->setFirstResult(($page - 1) * $limit)
+                ->setMaxResults($limit);
+        }
+
+        $query = $queryBuilder->getQuery();
+        $tasks = $query->getResult();
+
+        //Return paginated results
+        if ($page && $limit) {
+            $total = count($tasks);
+            return [
+                'data' => $tasks,
+                'total' => $total,
+                'current_page' => $page,
+                'limit' => $limit
+            ];
+        }
+
+        return $tasks;
     }
 }
